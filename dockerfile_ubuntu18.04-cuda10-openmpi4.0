@@ -1,0 +1,164 @@
+FROM nvidia/cuda:10.0-cudnn7-devel-ubuntu18.04
+
+MAINTAINER yazhou.liu.chn@outlook.com
+
+RUN rm -rf /etc/apt/sources.list.d/*
+
+
+RUN apt-get update && apt-get install -y \
+    apt-file \
+    apt-transport-https \
+    apt-utils \
+    ca-certificates \
+    curl \
+    less \
+    locales \
+    locate \
+    openssh-client \
+    rsync \
+    sudo \
+    xz-utils \
+    unzip \
+    wget \
+    tmux \
+    git \
+    vim \
+    openssh-server \
+    lrzsz \
+    zip && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
+
+RUN locale-gen en_US.UTF-8 && \
+    localedef -i en_US -f UTF-8 en_US.UTF-8
+
+RUN apt-get update && apt-get install -y \
+    autoconf \
+    automake \
+    bison \
+    build-essential \
+    cmake \
+    gdb \
+    gfortran \
+    git \
+    libtool \
+    m4 \
+    ninja-build \
+    pkg-config \
+    software-properties-common && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
+
+RUN apt-get update && apt-get install -y \
+    autoconf-archive \
+    binutils-dev \
+    libboost-all-dev \
+    libbz2-dev \
+    libcurl3-dev \
+    libdouble-conversion-dev \
+    libdwarf-dev \
+    libeigen3-dev \
+    libelf-dev \
+    libev-dev \
+    libevent-dev \
+    libfreetype6-dev \
+    libgflags-dev \
+    libgfortran3 \
+    libgoogle-glog-dev \
+    libgoogle-perftools-dev \
+    libiberty-dev \
+    libjemalloc-dev \
+    libjpeg-dev \
+    liblapack-dev \
+    liblapacke-dev \
+    liblz4-dev \
+    liblzma-dev \
+    libopenblas-dev \
+    libsnappy-dev \
+    libssl-dev \
+    libtcmalloc-minimal4 \
+    libunwind8-dev \
+    libzmq3-dev \
+    zlib1g-dev && \ 
+    apt-get clean && rm -rf /var/lib/apt/lists/*
+
+RUN apt-get update && apt-get install -y \
+	python \
+	python-dev \
+    python3-dev && \
+    apt-file update && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
+
+RUN curl -fSsL -O https://bootstrap.pypa.io/get-pip.py && \
+    python3 get-pip.py && \
+    rm get-pip.py
+
+RUN pip --no-cache-dir install -i https://mirrors.aliyun.com/pypi/simple -U \
+    wheel \
+    setuptools \
+    numpy \
+    matplotlib \
+    packaging \
+    pandas \
+    protobuf \
+    scipy \
+    Pillow \
+    h5py \
+    ipykernel \
+    jupyter \
+    keras_applications \
+    keras_preprocessing \
+    matplotlib \
+    mock \
+    jupyterlab \
+    redis-py-cluster \
+    hdfs \
+    torch \
+    torchvision \
+    keras && \
+    python3 -m ipykernel.kernelspec
+
+RUN apt-get update && apt-get install -y \
+    maven \
+    openjdk-8-jdk \
+    openjdk-8-jre && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
+
+RUN echo "deb [arch=amd64] http://storage.googleapis.com/bazel-apt stable jdk1.8" | sudo tee /etc/apt/sources.list.d/bazel.list 
+
+RUN curl https://bazel.build/bazel-release.pub.gpg | sudo apt-key add -
+
+RUN apt-get update && apt-get install -y bazel
+
+RUN mkdir /tmp/openmpi && \
+    cd /tmp/openmpi && \
+    wget https://download.open-mpi.org/release/open-mpi/v4.0/openmpi-4.0.0.tar.gz && \
+    tar zxf openmpi-4.0.0.tar.gz && \
+    cd openmpi-4.0.0 && \
+    ./configure --enable-orterun-prefix-by-default && \
+    make -j $(nproc) all && \
+    make install && \
+    ldconfig && \
+    rm -rf /tmp/openmpi
+
+RUN mv /usr/local/bin/mpirun /usr/local/bin/mpirun.real && \
+    echo '#!/bin/bash' > /usr/local/bin/mpirun && \
+    echo 'mpirun.real --allow-run-as-root "$@"' >> /usr/local/bin/mpirun && \
+    chmod a+x /usr/local/bin/mpirun
+
+RUN echo "hwloc_base_binding_policy = none" >> /usr/local/etc/openmpi-mca-params.conf && \
+    echo "rmaps_base_mapping_policy = slot" >> /usr/local/etc/openmpi-mca-params.conf && \
+    echo "btl_tcp_if_exclude = lo,docker0" >> /usr/local/etc/openmpi-mca-params.conf
+
+RUN echo NCCL_DEBUG=INFO >> /etc/nccl.conf
+
+RUN apt-get install -y --no-install-recommends openssh-client openssh-server && \
+    mkdir -p /var/run/sshd
+
+RUN cat /etc/ssh/ssh_config | grep -v StrictHostKeyChecking > /etc/ssh/ssh_config.new && \
+    echo "    StrictHostKeyChecking no" >> /etc/ssh/ssh_config.new && \
+    mv /etc/ssh/ssh_config.new /etc/ssh/ssh_config
+
+RUN apt-get install -y --no-install-recommends subversion && \
+    svn checkout https://github.com/uber/horovod/trunk/examples && \
+    rm -rf /examples/.svn
+
+EXPOSE 22 6666 8008
