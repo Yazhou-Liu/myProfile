@@ -83,6 +83,7 @@ RUN apt-get update && apt-get install -y \
 RUN apt-get update && apt-get install -y \
 	python \
 	python-dev \
+    python3-jpype \
     python3-dev && \
     apt-file update && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
@@ -113,6 +114,7 @@ RUN pip --no-cache-dir install -i https://mirrors.aliyun.com/pypi/simple -U \
     hdfs \
     torch \
     torchvision \
+    Flask \
     keras && \
     python3 -m ipykernel.kernelspec
 
